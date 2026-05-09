@@ -21,12 +21,15 @@ function ConfirmModal({ title, message, onConfirm, onCancel }: { title: string; 
 export default function Settings() {
   const { user, isLoading, logout, setAuthToken } = useAuth();
   const [fullName, setFullName] = useState('');
-  const [password, setPassword] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,10 +44,29 @@ export default function Settings() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
     setFile(f);
+    
+    if (f) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(f);
+    } else {
+      setImagePreview(null);
+    }
   };
 
   const doSave = async () => {
     setShowSaveConfirm(false);
+    setErrorMessage(null);
+    setInfoMessage(null);
+    
+    // Validate password update
+    if (newPassword && !oldPassword) {
+      setErrorMessage('Old password is required to set a new password.');
+      return;
+    }
+    
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
@@ -52,15 +74,28 @@ export default function Settings() {
 
       const form = new FormData();
       form.append('full_name', fullName);
-      if (password) form.append('password', password);
+      if (oldPassword) form.append('old_password', oldPassword);
+      if (newPassword) form.append('password', newPassword);
       if (file) form.append('profile_image', file);
 
-      await patchUser(user.id, form, token);
-      // refresh user in context
+      const updatedUser = await patchUser(user.id, form, token);
+      
+      // Update local state with returned user data
+      setFullName(updatedUser.full_name);
+      
+      // Also refresh the auth context with the updated user
       await setAuthToken(token);
+      
+      // clear form fields after successful save
+      setOldPassword('');
+      setNewPassword('');
+      setFile(null);
+      setImagePreview(null);
+      
       setInfoMessage('Profile updated successfully.');
     } catch (err) {
-      setInfoMessage('Failed to update profile.');
+      console.error('Save failed:', err);
+      setErrorMessage('Failed to update profile. ' + (err instanceof Error ? err.message : ''));
     } finally {
       setLoading(false);
     }
@@ -89,7 +124,7 @@ export default function Settings() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex flex-col items-center">
               <img
-                src={user.profileImageUrl ?? `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
+                src={imagePreview || (user.profileImageUrl ?? `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(user.name)}`)}
                 alt="avatar"
                 className="w-28 h-28 rounded-full object-cover mb-4"
               />
@@ -110,14 +145,18 @@ export default function Settings() {
               <label className="block text-sm font-medium mb-2">Email (cannot change)</label>
               <input value={user.email} readOnly className="w-full p-3 border rounded-lg mb-4 bg-slate-50" />
 
+              <label className="block text-sm font-medium mb-2">Current password (required to change password)</label>
+              <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} placeholder="Enter current password if changing password" className="w-full p-3 border rounded-lg mb-4" />
+
               <label className="block text-sm font-medium mb-2">New password (optional)</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg mb-6" />
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Leave blank to keep current password" className="w-full p-3 border rounded-lg mb-6" />
 
               <div className="flex gap-3">
                 <button onClick={() => setShowSaveConfirm(true)} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer disabled:cursor-not-allowed">{loading ? 'Saving...' : 'Save changes'}</button>
                 <button onClick={() => setShowDeleteConfirm(true)} disabled={loading} className="px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer disabled:cursor-not-allowed">Delete account</button>
               </div>
-              {infoMessage && <p className="mt-4 text-sm text-slate-600">{infoMessage}</p>}
+              {errorMessage && <p className="mt-4 text-sm text-red-600">{errorMessage}</p>}
+              {infoMessage && <p className="mt-4 text-sm text-green-600">{infoMessage}</p>}
             </div>
           </div>
         </div>
