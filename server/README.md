@@ -26,11 +26,33 @@ uvicorn main:app --reload
 Create a `.env` file in the `server/` folder:
 
 ```bash
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DATABASE=webapp
-SECRET_KEY=change-this-secret-key
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
+# Database Configuration
+MONGODB_URI=
+MONGODB_DATABASE=slmApplication
+
+# Jwt Configuration
+JWT_SECRET=
+
+# Email Configuration
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_FROM_NAME=HealthBot
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+CLOUDINARY_UPLOAD_FOLDER=slm-profiles
+
+# Google Auth
+GOOGLE_AUTH_CLIENT_ID=
+GOOGLE_AUTH_CLIENT_SECRET=
+GOOGLE_CLIENT_REDIRECT_URL=
+GOOGLE_AUTH_REDIRECT_URL=http://127.0.0.1:8000/auth/google/callback
+
 ```
 
 ### Auth endpoints
