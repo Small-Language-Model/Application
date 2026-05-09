@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { getCurrentUser, loginUser, registerUser, UserPublic } from '../lib/api';
 
 interface User {
   id: string;
@@ -23,57 +24,64 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_TOKEN_KEY = 'auth_token';
+const DEFAULT_TOKENS = 1000;
+
+function toClientUser(apiUser: UserPublic): User {
+  const isAdmin = apiUser.email === 'admin@vitallm.com';
+  return {
+    id: apiUser.id,
+    email: apiUser.email,
+    name: apiUser.full_name,
+    isAdmin,
+    tokensRemaining: isAdmin ? 1000000 : DEFAULT_TOKENS,
+    dailyTokenLimit: isAdmin ? 1000000 : DEFAULT_TOKENS,
+    isPremium: isAdmin,
+    subscriptionTier: isAdmin ? 'enterprise' : 'free',
+    subscriptionRenewDate: isAdmin ? '2026-06-09' : undefined,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  const login = async (email: string, password: string) => {
-    // Mock login - in production, this would call your API
-    await new Promise(resolve => setTimeout(resolve, 500));
+  useEffect(() => {
+    const bootstrapSession = async () => {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) {
+        return;
+      }
 
-    // Mock admin user
-    if (email === 'admin@vitallm.com') {
-      setUser({
-        id: '1',
-        email,
-        name: 'Admin User',
-        isAdmin: true,
-        tokensRemaining: 1000000,
-        dailyTokenLimit: 1000000,
-        isPremium: true,
-        subscriptionTier: 'enterprise',
-        subscriptionRenewDate: '2026-06-09',
-      });
-    } else {
-      setUser({
-        id: '2',
-        email,
-        name: email.split('@')[0],
-        isAdmin: false,
-        tokensRemaining: 1000,
-        dailyTokenLimit: 1000,
-        isPremium: false,
-        subscriptionTier: 'free',
-      });
-    }
+      try {
+        const currentUser = await getCurrentUser(token);
+        setUser(toClientUser(currentUser));
+      } catch {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        setUser(null);
+      }
+    };
+
+    void bootstrapSession();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    const token = await loginUser({ email, password });
+    localStorage.setItem(AUTH_TOKEN_KEY, token.access_token);
+    const currentUser = await getCurrentUser(token.access_token);
+    setUser(toClientUser(currentUser));
   };
 
   const register = async (email: string, password: string, name: string) => {
-    // Mock registration
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setUser({
-      id: Math.random().toString(),
+    await registerUser({
+      full_name: name,
       email,
-      name,
-      isAdmin: false,
-      tokensRemaining: 1000,
-      dailyTokenLimit: 1000,
-      isPremium: false,
-      subscriptionTier: 'free',
+      password,
     });
+    await login(email, password);
   };
 
   const logout = () => {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
     setUser(null);
   };
 

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Mail, Lock, AlertCircle } from 'lucide-react';
+import { ApiError } from '../lib/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,7 +12,7 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -20,7 +21,11 @@ export default function Login() {
       await login(email, password);
       navigate('/chat');
     } catch (err) {
-      setError('Invalid credentials. Please try again.');
+      if (err instanceof ApiError) {
+        setError(err.detail ?? err.message);
+      } else {
+        setError('Invalid credentials. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
