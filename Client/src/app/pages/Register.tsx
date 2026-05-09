@@ -1,39 +1,65 @@
-import { useState } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { ApiError, sendOtp, verifyOtpAndRegister } from '../lib/api';
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
     setLoading(true);
 
     try {
-      await register(email, password, name);
-      navigate('/chat');
+      if (!otpSent) {
+        await sendOtp(email);
+        setOtpSent(true);
+        setSuccessMessage('OTP sent to your email. Enter it below to complete registration.');
+      } else {
+        if (!otp.trim()) {
+          setError('Please enter the OTP code sent to your email.');
+          return;
+        }
+
+        await verifyOtpAndRegister({
+          full_name: name,
+          email,
+          otp: otp.trim(),
+          password,
+        });
+        await login(email, password);
+        navigate('/chat');
+      }
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      if (err instanceof ApiError) {
+        setError(err.detail ?? err.message);
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +94,12 @@ export default function Register() {
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">{successMessage}</p>
             </div>
           )}
 
@@ -144,12 +176,29 @@ export default function Register() {
               </div>
             </div>
 
+            {otpSent && (
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-slate-700 mb-2">
+                  OTP Code
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? (otpSent ? 'Verifying OTP...' : 'Sending OTP...') : (otpSent ? 'Verify & Create Account' : 'Send OTP')}
             </button>
           </form>
 
