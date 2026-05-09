@@ -8,6 +8,7 @@ beanie>=1.25.0
 # Auth
 python-jose[cryptography]>=3.3.0
 passlib>=1.7.4
+google-auth>=2.29.0
 
 # Email
 fastapi-mail>=1.4.1

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router';
 import { Send, Bot, User as UserIcon, AlertCircle, Coins, Plus, Sparkles } from 'lucide-react';
@@ -11,7 +11,7 @@ interface Message {
 }
 
 export default function Chat() {
-  const { user, updateTokens, purchaseTokens } = useAuth();
+  const { user, isLoading: authLoading, updateTokens, purchaseTokens } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -25,10 +25,10 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate('/login');
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -345,7 +345,7 @@ export default function Chat() {
                       to="/pricing"
                       className="inline-block text-sm text-blue-600 hover:underline font-medium"
                     >
-                      View pricing plans →
+                      View pricing plans â†’
                     </Link>
                   </div>
                 </div>
@@ -381,3 +381,5 @@ export default function Chat() {
     </div>
   );
 }
+
+

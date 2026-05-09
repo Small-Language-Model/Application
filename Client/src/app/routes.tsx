@@ -9,6 +9,7 @@ import Guide from './pages/Guide';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
+import GoogleAuthCallback from './pages/GoogleAuthCallback';
 
 export const router = createBrowserRouter([
   {
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: <Layout><Admin /></Layout>,
+  },
+  {
+    path: '/auth/google/callback',
+    element: <Layout><GoogleAuthCallback /></Layout>,
   },
   {
     path: '*',
