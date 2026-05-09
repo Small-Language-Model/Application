@@ -13,7 +13,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login, user, isLoading } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/chat';
