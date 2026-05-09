@@ -1,0 +1,18 @@
+# Core Framework & Server
+fastapi[standard]==0.136.1
+
+# MongoDB Driver & ODM
+motor>=3.6.0
+beanie>=1.25.0
+
+# Auth
+python-jose[cryptography]>=3.3.0
+passlib>=1.7.4
+
+# Email
+fastapi-mail>=1.4.1
+aiosmtplib>=3.0.0
+
+# Environment Management
+pydantic-settings>=2.4.0
+python-dotenv>=1.0.1
