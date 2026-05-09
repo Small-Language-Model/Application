@@ -141,7 +141,7 @@ export async function patchUser(userId: string, formData: FormData, token: strin
     Authorization: `Bearer ${token}`,
   };
 
-  return request<UserPublic>(`/users/${userId}`, {
+  return request<UserPublic>(`/auth/users/${userId}`, {
     method: 'PATCH',
     headers,
     body: formData,
@@ -149,7 +149,7 @@ export async function patchUser(userId: string, formData: FormData, token: strin
 }
 
 export async function deleteUser(userId: string, token: string): Promise<void> {
-  return request<void>(`/users/${userId}`, {
+  return request<void>(`/auth/users/${userId}`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`,
