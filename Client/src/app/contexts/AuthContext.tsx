@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+﻿import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { getCurrentUser, loginUser, registerUser, UserPublic } from '../lib/api';
 
 interface User {
@@ -20,6 +20,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
+  setAuthToken: (token: string) => Promise<void>;
   updateTokens: (amount: number) => void;
   purchaseTokens: (amount: number) => void;
   subscribe: (tier: 'starter' | 'pro' | 'enterprise') => void;
@@ -92,6 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const setAuthToken = async (token: string) => {
+    try {
+      const currentUser = await getCurrentUser(token);
+      setUser(toClientUser(currentUser));
+    } catch (err) {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      setUser(null);
+      throw err;
+    }
+  };
+
   const updateTokens = (amount: number) => {
     if (user) {
       setUser({
@@ -134,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateTokens, purchaseTokens, subscribe }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, setAuthToken, updateTokens, purchaseTokens, subscribe }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,12 +3,16 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Mail, Lock, AlertCircle } from 'lucide-react';
 import { ApiError } from '../lib/api';
+import GoogleSignInButton from '../components/GoogleSignInButton';
+import { startGoogleOAuth } from '../lib/googleAuth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login, user, isLoading } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { login, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +23,11 @@ export default function Login() {
       navigate(fromPath, { replace: true });
     }
   }, [isLoading, user, navigate, fromPath]);
+
+  const handleGoogleSignIn = () => {
+    setGoogleLoading(true);
+    startGoogleOAuth();
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -103,6 +112,12 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <div className="mt-6 flex items-center gap-3 before:flex-1 before:h-px before:bg-slate-300 after:flex-1 after:h-px after:bg-slate-300">
+            <span className="text-sm text-slate-600">or</span>
+          </div>
+
+          <GoogleSignInButton loading={googleLoading} onClick={handleGoogleSignIn} />
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-600">

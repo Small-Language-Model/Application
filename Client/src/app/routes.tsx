@@ -12,6 +12,7 @@ import Admin from './pages/Admin';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import { useAuth } from './contexts/AuthContext';
+import GoogleAuthCallback from './pages/GoogleAuthCallback';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -74,6 +75,10 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: <Layout><RequireAuth><Admin /></RequireAuth></Layout>,
+  },
+  {
+    path: '/auth/google/callback',
+    element: <Layout><GoogleAuthCallback /></Layout>,
   },
   {
     path: '*',

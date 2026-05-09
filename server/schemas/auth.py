@@ -14,6 +14,10 @@ class UserLogin(BaseModel):
     password: str
 
 
+class GoogleSignInRequest(BaseModel):
+    credential: str = Field(..., min_length=1)
+
+
 class SendOTPRequest(BaseModel):
     email: EmailStr
 

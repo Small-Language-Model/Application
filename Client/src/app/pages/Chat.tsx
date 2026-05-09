@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router';
 import { Send, Bot, User as UserIcon, AlertCircle, Coins, Plus, Sparkles } from 'lucide-react';
@@ -345,7 +345,7 @@ export default function Chat() {
                       to="/pricing"
                       className="inline-block text-sm text-blue-600 hover:underline font-medium"
                     >
-                      View pricing plans →
+                      View pricing plans â†’
                     </Link>
                   </div>
                 </div>
@@ -381,3 +381,5 @@ export default function Chat() {
     </div>
   );
 }
+
+
