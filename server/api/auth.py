@@ -21,6 +21,7 @@ from utils.auth import (
     fetch_google_userinfo,
     get_current_user,
     get_password_hash,
+    verify_password,
     GOOGLE_CLIENT_REDIRECT_URL,
 )
 from utils.media import delete_image_from_cloudinary, get_default_profile_image_url, upload_image_to_cloudinary
@@ -297,6 +298,7 @@ async def update_user(
     user_id: str,
     full_name: str | None = Form(None),
     email: EmailStr | None = Form(None),
+    old_password: str | None = Form(None),
     password: str | None = Form(None),
     profile_image: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
@@ -311,6 +313,19 @@ async def update_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     existing_user = User(**_normalize_user_doc(existing_doc))
+
+    # Verify old password if changing password
+    if password is not None:
+        if not old_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required to change password",
+            )
+        if not existing_user.hashed_password or not verify_password(old_password, existing_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current password is incorrect",
+            )
 
     update_data: dict = {}
     if full_name is not None:
