@@ -10,6 +10,7 @@ class User(BaseModel):
 	email: EmailStr
 	hashed_password: Optional[str] = None
 	auth_type: str = Field(default="emailandpassword")  # emailandpassword or google
+	google_id: Optional[str] = None
 	is_verified: bool = False
 	profile_image_url: Optional[str] = None
 	profile_image_public_id: Optional[str] = None

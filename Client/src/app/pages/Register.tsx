@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle } from 'lucide-react';
 import { ApiError, sendOtp, verifyOtpAndRegister } from '../lib/api';
+import GoogleSignInButton from '../components/GoogleSignInButton';
+import { startGoogleOAuth } from '../lib/googleAuth';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -14,8 +16,14 @@ export default function Register() {
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSignUp = () => {
+    setGoogleLoading(true);
+    startGoogleOAuth();
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -201,6 +209,12 @@ export default function Register() {
               {loading ? (otpSent ? 'Verifying OTP...' : 'Sending OTP...') : (otpSent ? 'Verify & Create Account' : 'Send OTP')}
             </button>
           </form>
+
+          <div className="mt-6 flex items-center gap-3 before:flex-1 before:h-px before:bg-slate-300 after:flex-1 after:h-px after:bg-slate-300">
+            <span className="text-sm text-slate-600">or</span>
+          </div>
+
+          <GoogleSignInButton loading={googleLoading} onClick={handleGoogleSignUp} />
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-600">

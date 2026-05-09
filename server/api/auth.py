@@ -1,13 +1,28 @@
 from datetime import datetime, timezone, timedelta
 import os
+import secrets
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import EmailStr
+
+# In-memory store for OAuth state (with expiry)
+_oauth_state_store: dict[str, float] = {}
+OAUTH_STATE_EXPIRY_SECONDS = 600  # 10 minutes
 
 from config.db import get_otp_collection, get_users_collection
 from model.user import User
 from schemas.auth import SendOTPRequest, Token, UserCreate, UserLogin, UserPublic
-from utils.auth import authenticate_user, create_access_token, get_current_user, get_password_hash
+from utils.auth import (
+    authenticate_user,
+    build_google_authorization_url,
+    create_access_token,
+    exchange_google_code_for_tokens,
+    fetch_google_userinfo,
+    get_current_user,
+    get_password_hash,
+    GOOGLE_CLIENT_REDIRECT_URL,
+)
 from utils.media import delete_image_from_cloudinary, get_default_profile_image_url, upload_image_to_cloudinary
 from utils.otp import generate_otp, send_otp_email, verify_otp_expiry
 
@@ -17,6 +32,7 @@ router = APIRouter()
 def _normalize_user_doc(doc: dict) -> dict:
     doc.pop("_id", None)
     doc.setdefault("auth_type", "emailandpassword")
+    doc.setdefault("google_id", None)
     doc.setdefault("is_verified", False)
     doc.setdefault("profile_image_url", None)
     doc.setdefault("profile_image_public_id", None)
@@ -49,6 +65,100 @@ async def _upload_profile_image(profile_image: UploadFile | None) -> tuple[str |
     folder = os.getenv("CLOUDINARY_UPLOAD_FOLDER", "profiles")
     uploaded = upload_image_to_cloudinary(file_bytes, folder=folder)
     return uploaded.get("url"), uploaded.get("public_id")
+
+
+async def _upsert_google_user(payload: dict) -> User:
+    users_collection = get_users_collection()
+    email = payload["email"]
+    full_name = payload.get("name") or payload.get("given_name") or email.split("@")[0]
+    google_id = payload.get("sub")
+    profile_image_url = payload.get("picture") or get_default_profile_image_url(full_name)
+
+    existing_doc = await users_collection.find_one({"email": email})
+    if existing_doc:
+        existing_doc = _normalize_user_doc(existing_doc)
+        existing_user = User(**existing_doc)
+        update_data: dict = {
+            "full_name": existing_user.full_name or full_name,
+            "google_id": google_id,
+            "auth_type": "google",
+            "is_verified": True,
+        }
+
+        if not existing_user.profile_image_url and profile_image_url:
+            update_data["profile_image_url"] = profile_image_url
+
+        if existing_user.auth_type == "google" and not existing_user.hashed_password:
+            update_data["auth_type"] = "google"
+
+        await users_collection.update_one({"id": existing_user.id}, {"$set": update_data})
+        refreshed = await users_collection.find_one({"id": existing_user.id})
+        return User(**_normalize_user_doc(refreshed))
+
+    user = User(
+        full_name=full_name,
+        email=email,
+        hashed_password=None,
+        auth_type="google",
+        google_id=google_id,
+        is_verified=True,
+        profile_image_url=profile_image_url,
+    )
+    await users_collection.insert_one(user.model_dump())
+    return user
+
+
+def _google_success_response(token: str, user: User):
+    if GOOGLE_CLIENT_REDIRECT_URL:
+        redirect_url = f"{GOOGLE_CLIENT_REDIRECT_URL.rstrip('/')}/#access_token={token}&token_type=bearer&user_id={user.id}"
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "access_token": token,
+            "token_type": "bearer",
+            "user": _user_to_public(user).model_dump(),
+        },
+    )
+
+
+@router.get("/google/start")
+async def google_start(request: Request):
+    state = secrets.token_urlsafe(32)
+    auth_url = build_google_authorization_url(state)
+    # Store state with expiry timestamp
+    _oauth_state_store[state] = (datetime.now(timezone.utc).timestamp() + OAUTH_STATE_EXPIRY_SECONDS)
+    return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/google/callback")
+async def google_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None):
+    if error:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=error)
+
+    if not code or not state:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing Google authorization code")
+
+    # Validate state from in-memory store
+    state_expiry = _oauth_state_store.get(state)
+    if not state_expiry or datetime.now(timezone.utc).timestamp() > state_expiry:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google OAuth state")
+    
+    # Clean up state
+    del _oauth_state_store[state]
+
+    tokens = exchange_google_code_for_tokens(code)
+    access_token = tokens.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Google access token missing")
+
+    google_profile = fetch_google_userinfo(access_token)
+    user = await _upsert_google_user(google_profile)
+    app_token = create_access_token(data={"sub": str(user.id)})
+
+    response = _google_success_response(app_token, user)
+    return response
 
 
 @router.post("/send-otp", status_code=status.HTTP_200_OK)
@@ -155,6 +265,14 @@ async def login(payload: UserLogin):
 
     access_token = create_access_token(data={"sub": str(user.id)})
     return Token(access_token=access_token)
+
+
+@router.post("/google", response_model=Token)
+async def google_login(payload: dict):
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Use /auth/google/start and /auth/google/callback for Google sign-in",
+    )
 
 
 @router.get("/me", response_model=UserPublic)
