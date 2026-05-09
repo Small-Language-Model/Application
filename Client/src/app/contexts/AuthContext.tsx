@@ -6,6 +6,7 @@ interface User {
   email: string;
   name: string;
   isAdmin: boolean;
+  profileImageUrl?: string | null;
   tokensRemaining: number;
   dailyTokenLimit: number;
   isPremium: boolean;
@@ -15,6 +16,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
@@ -33,6 +35,7 @@ function toClientUser(apiUser: UserPublic): User {
     id: apiUser.id,
     email: apiUser.email,
     name: apiUser.full_name,
+    profileImageUrl: apiUser.profile_image_url ?? null,
     isAdmin,
     tokensRemaining: isAdmin ? 1000000 : DEFAULT_TOKENS,
     dailyTokenLimit: isAdmin ? 1000000 : DEFAULT_TOKENS,
@@ -44,11 +47,13 @@ function toClientUser(apiUser: UserPublic): User {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const bootstrapSession = async () => {
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) {
+        setIsLoading(false);
         return;
       }
 
@@ -58,6 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         localStorage.removeItem(AUTH_TOKEN_KEY);
         setUser(null);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -127,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateTokens, purchaseTokens, subscribe }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateTokens, purchaseTokens, subscribe }}>
       {children}
     </AuthContext.Provider>
   );

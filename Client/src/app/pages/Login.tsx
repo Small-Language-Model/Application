@@ -1,5 +1,5 @@
-import React, { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import React, { FormEvent, useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Mail, Lock, AlertCircle } from 'lucide-react';
 import { ApiError } from '../lib/api';
@@ -9,8 +9,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/chat';
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate(fromPath, { replace: true });
+    }
+  }, [isLoading, user, navigate, fromPath]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -19,7 +27,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/chat');
+      navigate(fromPath, { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.detail ?? err.message);

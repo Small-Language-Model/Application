@@ -11,7 +11,7 @@ interface Message {
 }
 
 export default function Chat() {
-  const { user, updateTokens, purchaseTokens } = useAuth();
+  const { user, isLoading: authLoading, updateTokens, purchaseTokens } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -25,10 +25,10 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate('/login');
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
