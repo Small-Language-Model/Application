@@ -13,6 +13,9 @@ passlib>=1.7.4
 fastapi-mail>=1.4.1
 aiosmtplib>=3.0.0
 
+# Media Uploads
+cloudinary>=1.41.0
+
 # Environment Management
 pydantic-settings>=2.4.0
 python-dotenv>=1.0.1
