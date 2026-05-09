@@ -124,3 +124,35 @@ export async function verifyOtpAndRegister(payload: {
     body,
   });
 }
+
+export async function getUserById(userId: string, token?: string): Promise<UserPublic> {
+  return request<UserPublic>(`/users/${userId}`, {
+    method: 'GET',
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : undefined,
+  });
+}
+
+export async function patchUser(userId: string, formData: FormData, token: string): Promise<UserPublic> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+
+  return request<UserPublic>(`/users/${userId}`, {
+    method: 'PATCH',
+    headers,
+    body: formData,
+  });
+}
+
+export async function deleteUser(userId: string, token: string): Promise<void> {
+  return request<void>(`/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}

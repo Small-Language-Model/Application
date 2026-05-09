@@ -60,8 +60,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       {user.tokensRemaining.toLocaleString()} tokens
                     </span>
                   </div>
+                  <Link to="/settings" className="flex items-center gap-2">
+                    <img
+                      src={user.profileImageUrl ?? `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(
+                        user.name
+                      )}`}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  </Link>
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-600" />
                     <span className="text-sm text-slate-700">{user.name}</span>
                   </div>
                   <button
@@ -154,7 +162,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <>
                     <div className="px-4 py-2">
                       <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
-                        <User className="w-4 h-4" />
+                        <img
+                          src={user.profileImageUrl ?? `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(
+                            user.name
+                          )}`}
+                          alt="Profile"
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
                         {user.name}
                       </div>
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
@@ -164,13 +178,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className="mx-4 px-4 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-lg"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
+                    <div className="flex gap-2 items-center mx-4">
+                      <Link to="/settings" className="px-3 py-2 text-sm text-slate-700 hover:text-blue-600">
+                        Settings
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="px-4 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-lg"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <>

@@ -6,6 +6,7 @@ interface User {
   email: string;
   name: string;
   isAdmin: boolean;
+  profileImageUrl?: string | null;
   tokensRemaining: number;
   dailyTokenLimit: number;
   isPremium: boolean;
@@ -35,6 +36,7 @@ function toClientUser(apiUser: UserPublic): User {
     id: apiUser.id,
     email: apiUser.email,
     name: apiUser.full_name,
+    profileImageUrl: apiUser.profile_image_url ?? null,
     isAdmin,
     tokensRemaining: isAdmin ? 1000000 : DEFAULT_TOKENS,
     dailyTokenLimit: isAdmin ? 1000000 : DEFAULT_TOKENS,
