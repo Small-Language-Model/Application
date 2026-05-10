@@ -9,12 +9,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const isChatPage = location.pathname === '/chat';
 
-  const handleLogout = () => {
+  const confirmLogout = () => {
     logout();
     navigate('/');
     setMobileMenuOpen(false);
+    setShowLogoutConfirm(false);
+  };
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
   };
 
   return (
@@ -34,6 +40,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Link>
               <Link to="/model" className="text-slate-700 hover:text-blue-600 transition-colors">
                 Model
+              </Link>
+              <Link to="/about" className="text-slate-700 hover:text-blue-600 transition-colors">
+                About
               </Link>
               <Link to="/pricing" className="text-slate-700 hover:text-blue-600 transition-colors">
                 Pricing
@@ -129,6 +138,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   Model
                 </Link>
                 <Link
+                  to="/about"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-lg"
+                >
+                  About
+                </Link>
+                <Link
                   to="/pricing"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-lg"
@@ -218,6 +234,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-2">Confirm logout</h3>
+            <p className="text-sm text-slate-600 mb-4">Are you sure you want to log out?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 transition-colors">Cancel</button>
+              <button onClick={confirmLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer hover:bg-red-700 transition-colors">Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1">{children}</main>
 
       {!isChatPage && (
@@ -238,6 +267,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <div className="flex flex-col gap-2">
                 <Link to="/model" className="text-slate-600 hover:text-blue-600 text-sm">
                   Model Details
+                </Link>
+                <Link to="/about" className="text-slate-600 hover:text-blue-600 text-sm">
+                  About
                 </Link>
                 <Link to="/guide" className="text-slate-600 hover:text-blue-600 text-sm">
                   Documentation

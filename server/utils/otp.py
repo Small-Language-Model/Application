@@ -1,5 +1,6 @@
 import os
 import random
+import secrets
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -22,6 +23,10 @@ SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Your App")
 def generate_otp() -> str:
     """Generate a 6-digit OTP."""
     return str(random.randint(100000, 999999))
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def verify_otp_expiry(created_at: datetime) -> bool:
@@ -69,4 +74,46 @@ async def send_otp_email(email: str, otp: str) -> bool:
         return True
     except Exception as e:
         print(f"Email send failed: {e}")
+        return False
+
+
+async def send_password_reset_email(email: str, reset_url: str) -> bool:
+    try:
+        if not SMTP_USER or not SMTP_PASSWORD:
+            print(f"[DEV MODE] Password reset link for {email}: {reset_url}")
+            return True
+
+        subject = "Reset your VitalLM password"
+        html_content = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h2>Password reset request</h2>
+                <p>We received a request to reset your password.</p>
+                <p>
+                    <a href="{reset_url}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;">
+                        Reset Password
+                    </a>
+                </p>
+                <p>This link expires in <strong>1 hour</strong>.</p>
+                <p>If you did not request this, you can ignore this email.</p>
+            </body>
+        </html>
+        """
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
+        msg["To"] = email
+
+        msg.attach(MIMEText(html_content, "html"))
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+
+        print(f"Password reset email sent to {email}")
+        return True
+    except Exception as e:
+        print(f"Password reset email send failed: {e}")
         return False
