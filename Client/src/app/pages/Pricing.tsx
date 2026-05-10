@@ -30,7 +30,7 @@ export default function Pricing() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
 
-  const handleTokenPurchase = async (tokens: number) => {
+  const handleSubscribe = async (subscriptionPlan: 'starter' | 'pro' | 'enterprise') => {
     if (!user) {
       navigate('/register');
       return;
@@ -53,8 +53,8 @@ export default function Pricing() {
       }
 
       const order = await createBillingOrder({
-        payment_type: 'token_topup',
-        tokens: tokens,
+        payment_type: 'subscription',
+        subscription_plan: subscriptionPlan,
       }, token);
 
       const options = {
@@ -62,7 +62,7 @@ export default function Pricing() {
         amount: order.amount,
         currency: order.currency,
         name: 'VitalLM',
-        description: `Purchase ${tokens.toLocaleString()} tokens`,
+        description: `Subscribe to ${subscriptionPlan.charAt(0).toUpperCase() + subscriptionPlan.slice(1)} Plan`,
         order_id: order.order_id,
         handler: async (response: any) => {
           try {
@@ -71,8 +71,8 @@ export default function Pricing() {
                 order_id: response.razorpay_order_id,
                 payment_id: response.razorpay_payment_id,
                 signature: response.razorpay_signature,
-                payment_type: 'token_topup',
-                tokens: tokens,
+                payment_type: 'subscription',
+                subscription_plan: subscriptionPlan,
               },
               token,
             );
@@ -108,14 +108,14 @@ export default function Pricing() {
       price: 0,
       description: 'Perfect for trying out VitalLM',
       features: [
-        '1,000 tokens per day',
+        '1,000 prompts per day',
         'Access to chat interface',
         'Model documentation',
         'Community support',
         'Basic rate limits',
       ],
       limitations: [
-        'Daily token reset',
+        'Daily prompt reset',
         'No priority support',
         'Standard response time',
       ],
@@ -129,14 +129,14 @@ export default function Pricing() {
       price: 19,
       description: 'Great for individuals and small projects',
       features: [
-        '50,000 tokens per month',
+        '50,000 prompts per month',
         'Priority chat access',
         'Email support',
         'API access',
         'Usage analytics',
         'No daily limits',
       ],
-      cta: 'Subscribe Now',
+      cta: 'Purchase',
       highlighted: false,
     },
     {
@@ -146,7 +146,7 @@ export default function Pricing() {
       price: 49,
       description: 'Best for professionals and growing teams',
       features: [
-        '200,000 tokens per month',
+        '200,000 prompts per month',
         'Priority support 24/7',
         'Advanced API features',
         'Custom fine-tuning assistance',
@@ -154,7 +154,7 @@ export default function Pricing() {
         'Detailed analytics dashboard',
         'SLA guarantee',
       ],
-      cta: 'Subscribe Now',
+      cta: 'Purchase',
       highlighted: true,
       popular: true,
     },
@@ -165,7 +165,7 @@ export default function Pricing() {
       price: 199,
       description: 'For large organizations with custom needs',
       features: [
-        '1,000,000 tokens per month',
+        '1,000,000 prompts per month',
         'Dedicated account manager',
         'Custom model training',
         'On-premise deployment support',
@@ -174,7 +174,7 @@ export default function Pricing() {
         'Custom SLA',
         'Priority feature requests',
       ],
-      cta: 'Contact Sales',
+      cta: 'Purchase',
       highlighted: false,
     },
   ];
@@ -188,7 +188,7 @@ export default function Pricing() {
             Choose Your Plan
           </h1>
           <p className="text-lg md:text-xl text-blue-100 max-w-2xl mx-auto">
-            Start free with 1,000 daily tokens, then scale with flexible subscription plans
+            Start free with 1,000 daily prompts, then scale with flexible subscription plans
           </p>
         </div>
       </section>
@@ -204,7 +204,7 @@ export default function Pricing() {
               return (
                 <div
                   key={tier.id}
-                  className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all ${
+                  className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all h-full flex flex-col ${
                     tier.highlighted
                       ? 'border-blue-600 scale-105'
                       : 'border-slate-200 hover:border-blue-300'
@@ -218,7 +218,7 @@ export default function Pricing() {
                     </div>
                   )}
 
-                  <div className="p-6">
+                  <div className="p-6 flex flex-col flex-1">
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                         tier.highlighted ? 'bg-blue-600' : 'bg-slate-100'
@@ -242,7 +242,7 @@ export default function Pricing() {
                       <p className="text-sm text-slate-600 mt-2">{tier.description}</p>
                     </div>
 
-                    <ul className="space-y-3 mb-6">
+                    <ul className="space-y-3 mb-6 flex-1">
                       {tier.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-2">
                           <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -262,7 +262,8 @@ export default function Pricing() {
                       </ul>
                     )}
 
-                    {tier.id === 'free' ? (
+                    <div className="mt-auto pt-6">
+                      {tier.id === 'free' ? (
                       <Link
                         to={user ? '/chat' : '/register'}
                         className={`w-full block text-center px-6 py-3 rounded-lg font-semibold transition-colors ${
@@ -292,13 +293,14 @@ export default function Pricing() {
                       >
                         {tier.cta}
                       </button>
-                    )}
+                      )}
 
-                    {isCurrentPlan && user?.subscriptionRenewDate && (
-                      <p className="text-xs text-center text-slate-500 mt-2">
-                        Renews on {new Date(user.subscriptionRenewDate).toLocaleDateString()}
-                      </p>
-                    )}
+                      {isCurrentPlan && user?.subscriptionRenewDate && (
+                        <p className="text-xs text-center text-slate-500 mt-2">
+                          Renews on {new Date(user.subscriptionRenewDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -315,70 +317,6 @@ export default function Pricing() {
         </div>
       )}
 
-      {/* Pay-as-you-go */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">
-              Or Buy Tokens On-Demand
-            </h2>
-            <p className="text-lg text-slate-600">
-              Need more flexibility? Purchase tokens without a subscription
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900 mb-2">10,000</div>
-                <div className="text-sm text-slate-600 mb-4">tokens</div>
-                <div className="text-4xl font-bold text-blue-600 mb-6">$1</div>
-                <div className="text-xs text-slate-500 mb-4">$0.10 per 1K tokens</div>
-                <button
-                  onClick={() => handleTokenPurchase(10000)}
-                  disabled={isProcessing}
-                  className={`w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  Purchase
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900 mb-2">100,000</div>
-                <div className="text-sm text-slate-600 mb-4">tokens</div>
-                <div className="text-4xl font-bold text-purple-600 mb-6">$10</div>
-                <div className="text-xs text-slate-500 mb-4">$0.10 per 1K tokens</div>
-                <button
-                  onClick={() => handleTokenPurchase(100000)}
-                  disabled={isProcessing}
-                  className={`w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  Purchase
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900 mb-2">500,000</div>
-                <div className="text-sm text-slate-600 mb-4">tokens</div>
-                <div className="text-4xl font-bold text-green-600 mb-6">$45</div>
-                <div className="text-xs text-green-600 font-medium mb-4">Save 10% • $0.09 per 1K</div>
-                <button
-                  onClick={() => handleTokenPurchase(500000)}
-                  disabled={isProcessing}
-                  className={`w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  Purchase
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section className="py-16 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -389,21 +327,21 @@ export default function Pricing() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 border border-slate-200">
               <h3 className="font-semibold text-slate-900 mb-2">
-                What happens when I run out of tokens?
+                What happens when I run out of prompts?
               </h3>
               <p className="text-slate-600 text-sm">
-                Free tier users receive 1,000 tokens daily. Subscription users get their monthly allocation upfront.
-                When you run out, you can purchase additional tokens or upgrade your plan.
+                Free tier users receive 1,000 prompts daily. Subscription users get their monthly allocation upfront.
+                When you run out, you can purchase additional prompts or upgrade your plan.
               </p>
             </div>
 
             <div className="bg-white rounded-xl p-6 border border-slate-200">
               <h3 className="font-semibold text-slate-900 mb-2">
-                Do unused tokens roll over?
+                Do unused prompts roll over?
               </h3>
               <p className="text-slate-600 text-sm">
-                Free tier tokens reset daily. Subscription tokens reset monthly but don't roll over.
-                One-time token purchases never expire.
+                Free tier prompts reset daily. Subscription prompts reset monthly but don't roll over.
+                One-time prompt purchases never expire.
               </p>
             </div>
 
@@ -422,7 +360,7 @@ export default function Pricing() {
                 What about self-hosted deployments?
               </h3>
               <p className="text-slate-600 text-sm">
-                Self-hosted deployments have no token limits! Download VitalLM and run it on your infrastructure
+                Self-hosted deployments have no prompt limits! Download VitalLM and run it on your infrastructure
                 for unlimited usage. Check our{' '}
                 <Link to="/guide" className="text-blue-600 hover:underline">deployment guide</Link> to learn more.
               </p>
@@ -438,7 +376,7 @@ export default function Pricing() {
             Ready to Get Started?
           </h2>
           <p className="text-lg text-blue-100 mb-8">
-            Start with 1,000 free tokens today. No credit card required.
+            Start with 1,000 free prompts today. No credit card required.
           </p>
           <Link
             to="/register"

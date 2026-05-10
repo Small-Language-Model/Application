@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router';
+import { useLocation } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Menu, X, LogOut, User, Coins } from 'lucide-react';
 import { useState } from 'react';
@@ -6,7 +7,9 @@ import { useState } from 'react';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isChatPage = location.pathname === '/chat';
 
   const handleLogout = () => {
     logout();
@@ -52,12 +55,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             {/* User Menu */}
             <div className="hidden md:flex items-center gap-4">
-              {user ? (
+              {user && !isChatPage ? (
                 <>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
                     <Coins className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium text-slate-700">
-                      {user.tokensRemaining.toLocaleString()} tokens
+                      {user.tokensRemaining.toLocaleString()} prompts
                     </span>
                   </div>
                   <Link to="/settings" className="flex items-center gap-2">
@@ -80,7 +83,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     Logout
                   </button>
                 </>
-              ) : (
+              ) : !user ? (
                 <>
                   <Link
                     to="/login"
@@ -95,7 +98,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     Sign Up
                   </Link>
                 </>
-              )}
+              ) : null}
             </div>
 
             {/* Mobile Menu Button */}
@@ -158,7 +161,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
                 )}
                 <div className="border-t my-2"></div>
-                {user ? (
+                {user && !isChatPage ? (
                   <>
                     <div className="px-4 py-2">
                       <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
@@ -174,7 +177,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
                         <Coins className="w-4 h-4 text-blue-600" />
                         <span className="text-sm font-medium text-slate-700">
-                          {user.tokensRemaining.toLocaleString()} tokens
+                          {user.tokensRemaining.toLocaleString()} prompts
                         </span>
                       </div>
                     </div>
@@ -191,7 +194,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       </button>
                     </div>
                   </>
-                ) : (
+                ) : !user ? (
                   <>
                     <Link
                       to="/login"
@@ -208,7 +211,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       Sign Up
                     </Link>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
           )}
@@ -217,6 +220,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
+      {!isChatPage && (
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -255,6 +259,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }
