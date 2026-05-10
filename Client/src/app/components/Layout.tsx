@@ -35,6 +35,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link to="/model" className="text-slate-700 hover:text-blue-600 transition-colors">
                 Model
               </Link>
+              <Link to="/about" className="text-slate-700 hover:text-blue-600 transition-colors">
+                About
+              </Link>
               <Link to="/pricing" className="text-slate-700 hover:text-blue-600 transition-colors">
                 Pricing
               </Link>
@@ -127,6 +130,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-lg"
                 >
                   Model
+                </Link>
+                <Link
+                  to="/about"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-lg"
+                >
+                  About
                 </Link>
                 <Link
                   to="/pricing"
@@ -238,6 +248,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <div className="flex flex-col gap-2">
                 <Link to="/model" className="text-slate-600 hover:text-blue-600 text-sm">
                   Model Details
+                </Link>
+                <Link to="/about" className="text-slate-600 hover:text-blue-600 text-sm">
+                  About
                 </Link>
                 <Link to="/guide" className="text-slate-600 hover:text-blue-600 text-sm">
                   Documentation

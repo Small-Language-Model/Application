@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Model from './pages/Model';
+import About from './pages/About';
 import Pricing from './pages/Pricing';
 import Guide from './pages/Guide';
 import Chat from './pages/Chat';
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
   {
     path: '/model',
     element: <Layout><Model /></Layout>,
+  },
+  {
+    path: '/about',
+    element: <Layout><About /></Layout>,
   },
   {
     path: '/pricing',
