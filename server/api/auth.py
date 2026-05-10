@@ -10,9 +10,9 @@ from pydantic import EmailStr
 _oauth_state_store: dict[str, float] = {}
 OAUTH_STATE_EXPIRY_SECONDS = 600  # 10 minutes
 
-from config.db import get_otp_collection, get_users_collection
+from config.db import get_otp_collection, get_password_reset_collection, get_users_collection
 from model.user import User
-from schemas.auth import SendOTPRequest, Token, UserCreate, UserLogin, UserPublic
+from schemas.auth import ForgotPasswordRequest, ResetPasswordRequest, SendOTPRequest, Token, UserCreate, UserLogin, UserPublic
 from utils.auth import (
     authenticate_user,
     build_google_authorization_url,
@@ -25,9 +25,10 @@ from utils.auth import (
     GOOGLE_CLIENT_REDIRECT_URL,
 )
 from utils.media import delete_image_from_cloudinary, get_default_profile_image_url, upload_image_to_cloudinary
-from utils.otp import generate_otp, send_otp_email, verify_otp_expiry
+from utils.otp import generate_otp, generate_reset_token, send_otp_email, send_password_reset_email, verify_otp_expiry
 
 router = APIRouter()
+PASSWORD_RESET_EXPIRY_MINUTES = 60
 
 
 def _normalize_user_doc(doc: dict) -> dict:
@@ -183,6 +184,62 @@ async def send_otp_endpoint(request: SendOTPRequest):
         "is_verified": False,
     })
     return {"message": "OTP sent to email", "email": request.email}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(request: ForgotPasswordRequest):
+    users_collection = get_users_collection()
+    user_doc = await users_collection.find_one({"email": request.email})
+
+    if not user_doc:
+        return {"message": "If the email exists, a reset link has been sent."}
+
+    reset_collection = get_password_reset_collection()
+    await reset_collection.delete_many({"email": request.email})
+
+    token = generate_reset_token()
+    await reset_collection.insert_one({
+        "email": request.email,
+        "token": token,
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_EXPIRY_MINUTES),
+    })
+
+    client_reset_base = os.getenv("CLIENT_RESET_PASSWORD_URL", "http://localhost:5173/reset-password")
+    reset_url = f"{client_reset_base.rstrip('/')}?token={token}"
+    await send_password_reset_email(request.email, reset_url)
+
+    return {"message": "If the email exists, a reset link has been sent."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(request: ResetPasswordRequest):
+    reset_collection = get_password_reset_collection()
+    reset_doc = await reset_collection.find_one({"token": request.token})
+
+    if not reset_doc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset link")
+
+    expires_at = reset_doc.get("expires_at")
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at and datetime.now(timezone.utc) > expires_at:
+        await reset_collection.delete_one({"token": request.token})
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset link")
+
+    users_collection = get_users_collection()
+    user_doc = await users_collection.find_one({"email": reset_doc["email"]})
+    if not user_doc:
+        await reset_collection.delete_one({"token": request.token})
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    await users_collection.update_one(
+        {"email": reset_doc["email"]},
+        {"$set": {"hashed_password": get_password_hash(request.password)}},
+    )
+    await reset_collection.delete_many({"email": reset_doc["email"]})
+
+    return {"message": "Password updated successfully"}
 
 
 @router.post("/verify-otp", response_model=UserPublic, status_code=status.HTTP_201_CREATED)

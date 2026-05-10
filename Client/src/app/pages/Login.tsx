@@ -119,6 +119,11 @@ export default function Login() {
           <GoogleSignInButton loading={googleLoading} onClick={handleGoogleSignIn} />
 
           <div className="mt-6 text-center">
+            <p className="text-sm text-slate-600 mb-3">
+              <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
+                Forgot password?
+              </Link>
+            </p>
             <p className="text-sm text-slate-600">
               Don't have an account?{' '}
               <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">

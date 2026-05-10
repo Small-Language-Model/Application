@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import Register from './pages/Register';
 import Model from './pages/Model';
 import About from './pages/About';
@@ -11,6 +12,7 @@ import Guide from './pages/Guide';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 import Settings from './pages/Settings';
+import ResetPassword from './pages/ResetPassword';
 import NotFound from './pages/NotFound';
 import { useAuth } from './contexts/AuthContext';
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
@@ -48,6 +50,14 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Layout><PublicOnly><Login /></PublicOnly></Layout>,
+  },
+  {
+    path: '/forgot-password',
+    element: <Layout><ForgotPassword /></Layout>,
+  },
+  {
+    path: '/reset-password',
+    element: <Layout><ResetPassword /></Layout>,
   },
   {
     path: '/register',
