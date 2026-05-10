@@ -34,6 +34,7 @@ SUBSCRIPTION_PLANS = {
         "currency": "INR",
         "days": 30,
         "tokens_per_day": 1667,  # 50,000 tokens / 30 days
+        "tokens_per_month": 50000,
         "display_name": "Starter Plan - 50,000 tokens/month",
     },
     "pro": {
@@ -41,6 +42,7 @@ SUBSCRIPTION_PLANS = {
         "currency": "INR",
         "days": 30,
         "tokens_per_day": 6667,  # 200,000 tokens / 30 days
+        "tokens_per_month": 200000,
         "display_name": "Pro Plan - 200,000 tokens/month",
     },
     "enterprise": {
@@ -48,6 +50,7 @@ SUBSCRIPTION_PLANS = {
         "currency": "INR",
         "days": 30,
         "tokens_per_day": 33333,  # 1,000,000 tokens / 30 days
+        "tokens_per_month": 1000000,
         "display_name": "Enterprise Plan - 1,000,000 tokens/month",
     },
 }
@@ -175,6 +178,8 @@ async def verify_payment(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid subscription plan")
 
         expires_at = datetime.now(timezone.utc) + timedelta(days=plan_data["days"])
+        monthly_tokens = plan_data.get("tokens_per_month") or 0
+        current_tokens = user_doc.get("tokens_remaining", 0)
         await users_collection.update_one(
             {"id": current_user.id},
             {
@@ -182,6 +187,7 @@ async def verify_payment(
                     "subscription_plan": plan,
                     "subscription_expires_at": expires_at,
                     "subscription_tokens_per_day": plan_data["tokens_per_day"],
+                    "tokens_remaining": current_tokens + monthly_tokens,
                 }
             },
         )
