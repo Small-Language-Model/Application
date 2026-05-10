@@ -16,9 +16,11 @@ client: AsyncIOMotorClient | None = None
 database: AsyncIOMotorDatabase | None = None
 users_collection: AsyncIOMotorCollection | None = None
 otp_collection: AsyncIOMotorCollection | None = None
+billing_collection: AsyncIOMotorCollection | None = None
+chat_history_collection: AsyncIOMotorCollection | None = None
 
 async def connect_to_db() -> None:
-	global client, database, users_collection, otp_collection
+	global client, database, users_collection, otp_collection, billing_collection, chat_history_collection
 
 	if client is not None:
 		return
@@ -29,7 +31,14 @@ async def connect_to_db() -> None:
 		database = client[DATABASE_NAME]
 		users_collection = database["users"]
 		otp_collection = database["otps"]
+		billing_collection = database["billing"]
+		chat_history_collection = database["chat_history"]
 		await otp_collection.create_index([("expires_at", ASCENDING)], expireAfterSeconds=0)
+		await users_collection.create_index([("email", ASCENDING)], unique=True)
+		await users_collection.create_index([("id", ASCENDING)], unique=True)
+		await billing_collection.create_index([("user_id", ASCENDING)])
+		await billing_collection.create_index([("order_id", ASCENDING)], unique=True)
+		await chat_history_collection.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
 		print(f"Database connected: {DATABASE_NAME}")
 	except PyMongoError as error:
 		print(f"Database connection failed: {error}")
@@ -58,3 +67,15 @@ def get_otp_collection() -> AsyncIOMotorCollection:
 	if otp_collection is None:
 		raise RuntimeError("Database is not connected")
 	return otp_collection
+
+
+def get_billing_collection() -> AsyncIOMotorCollection:
+	if billing_collection is None:
+		raise RuntimeError("Database is not connected")
+	return billing_collection
+
+
+def get_chat_history_collection() -> AsyncIOMotorCollection:
+	if chat_history_collection is None:
+		raise RuntimeError("Database is not connected")
+	return chat_history_collection
