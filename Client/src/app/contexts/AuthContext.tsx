@@ -32,17 +32,21 @@ const DEFAULT_TOKENS = 1000;
 
 function toClientUser(apiUser: UserPublic): User {
   const isAdmin = apiUser.email === 'admin@vitallm.com';
+  const isSubscriptionActive = apiUser.subscription_expires_at 
+    ? new Date(apiUser.subscription_expires_at) > new Date()
+    : false;
+  
   return {
     id: apiUser.id,
     email: apiUser.email,
     name: apiUser.full_name,
     profileImageUrl: apiUser.profile_image_url ?? null,
     isAdmin,
-    tokensRemaining: isAdmin ? 1000000 : DEFAULT_TOKENS,
-    dailyTokenLimit: isAdmin ? 1000000 : DEFAULT_TOKENS,
-    isPremium: isAdmin,
-    subscriptionTier: isAdmin ? 'enterprise' : 'free',
-    subscriptionRenewDate: isAdmin ? '2026-06-09' : undefined,
+    tokensRemaining: apiUser.tokens_remaining,
+    dailyTokenLimit: apiUser.subscription_tokens_per_day || 10,
+    isPremium: isSubscriptionActive || isAdmin,
+    subscriptionTier: apiUser.subscription_plan ? 'starter' : (isAdmin ? 'enterprise' : 'free'),
+    subscriptionRenewDate: apiUser.subscription_expires_at,
   };
 }
 

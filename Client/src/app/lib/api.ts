@@ -58,6 +58,10 @@ export interface UserPublic {
   auth_type: string;
   is_verified: boolean;
   profile_image_url?: string | null;
+  tokens_remaining: number;
+  subscription_plan: string | null;
+  subscription_expires_at: string | null;
+  subscription_tokens_per_day: number;
 }
 
 export interface TokenResponse {
@@ -126,7 +130,7 @@ export async function verifyOtpAndRegister(payload: {
 }
 
 export async function getUserById(userId: string, token?: string): Promise<UserPublic> {
-  return request<UserPublic>(`/users/${userId}`, {
+  return request<UserPublic>(`/auth/users/${userId}`, {
     method: 'GET',
     headers: token
       ? {
@@ -151,6 +155,135 @@ export async function patchUser(userId: string, formData: FormData, token: strin
 export async function deleteUser(userId: string, token: string): Promise<void> {
   return request<void>(`/auth/users/${userId}`, {
     method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+// Billing
+export interface BillingOrderRequest {
+  payment_type: 'token_topup' | 'subscription';
+  tokens?: number;
+  subscription_plan?: string;
+}
+
+export interface BillingOrderResponse {
+  order_id: string;
+  amount: number;
+  currency: string;
+  razorpay_key_id: string;
+}
+
+export interface BillingVerifyRequest {
+  order_id: string;
+  payment_id: string;
+  signature: string;
+  payment_type: 'token_topup' | 'subscription';
+  tokens?: number;
+  subscription_plan?: string;
+}
+
+export interface BillingRecord {
+  id: string;
+  user_id: string;
+  amount: number;
+  currency: string;
+  payment_type: string;
+  tokens_purchased: number | null;
+  subscription_plan: string | null;
+  subscription_days: number | null;
+  order_id: string;
+  payment_id: string | null;
+  signature: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function createBillingOrder(payload: BillingOrderRequest, token: string): Promise<BillingOrderResponse> {
+  return request<BillingOrderResponse>('/billing/order', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function verifyBillingPayment(payload: BillingVerifyRequest, token: string): Promise<BillingRecord> {
+  return request<BillingRecord>('/billing/verify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getBillingHistory(token: string): Promise<BillingRecord[]> {
+  return request<BillingRecord[]>('/billing/history', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+// Inference
+export interface GenerateRequest {
+  prompt: string;
+  max_new_tokens?: number;
+  temperature?: number;
+  top_k?: number;
+  top_p?: number;
+  repetition_penalty?: number;
+}
+
+export interface GenerateResponse {
+  response: string;
+}
+
+export interface InferenceHealthResponse {
+  model_loaded: boolean;
+  device: string;
+}
+
+export interface ChatHistoryItem {
+  id: string;
+  user_id: string;
+  prompt: string;
+  response: string;
+  tokens_used: number;
+  created_at: string;
+}
+
+export interface ChatHistoryResponse {
+  history: ChatHistoryItem[];
+}
+
+export async function generateInference(payload: GenerateRequest, token: string): Promise<GenerateResponse> {
+  return request<GenerateResponse>('/inference/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getInferenceHealth(): Promise<InferenceHealthResponse> {
+  return request<InferenceHealthResponse>('/inference/health', {
+    method: 'GET',
+  });
+}
+
+export async function getChatHistory(token: string): Promise<ChatHistoryResponse> {
+  return request<ChatHistoryResponse>('/inference/history', {
+    method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
     },

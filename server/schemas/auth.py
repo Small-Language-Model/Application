@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -36,6 +37,10 @@ class UserPublic(BaseModel):
     auth_type: str
     is_verified: bool
     profile_image_url: str | None = None
+    tokens_remaining: int = 0
+    subscription_plan: str | None = None
+    subscription_expires_at: datetime | None = None
+    subscription_tokens_per_day: int = 0
 
 
 class Token(BaseModel):

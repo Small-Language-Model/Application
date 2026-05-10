@@ -1,18 +1,103 @@
 import { Check, Zap, Crown, Building2, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
+import { createBillingOrder, verifyBillingPayment } from '../lib/api';
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false);
+      return;
+    }
+
+    if ((window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 export default function Pricing() {
-  const { user, subscribe } = useAuth();
+  const { user, setAuthToken } = useAuth();
   const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
-  const handleSubscribe = (tier: 'starter' | 'pro' | 'enterprise') => {
+  const handleTokenPurchase = async (tokens: number) => {
     if (!user) {
       navigate('/register');
       return;
     }
-    subscribe(tier);
-    navigate('/chat');
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    setBillingError(null);
+    setIsProcessing(true);
+
+    try {
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        setBillingError('Unable to load Razorpay checkout. Please try again.');
+        return;
+      }
+
+      const order = await createBillingOrder({
+        payment_type: 'token_topup',
+        tokens: tokens,
+      }, token);
+
+      const options = {
+        key: order.razorpay_key_id,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'VitalLM',
+        description: `Purchase ${tokens.toLocaleString()} tokens`,
+        order_id: order.order_id,
+        handler: async (response: any) => {
+          try {
+            await verifyBillingPayment(
+              {
+                order_id: response.razorpay_order_id,
+                payment_id: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                payment_type: 'token_topup',
+                tokens: tokens,
+              },
+              token,
+            );
+            await setAuthToken(token);
+            navigate('/chat');
+          } catch (verifyError) {
+            setBillingError('Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+        },
+        theme: {
+          color: '#2563eb',
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      setBillingError('Unable to create billing order. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const tiers = [
@@ -198,11 +283,12 @@ export default function Pricing() {
                     ) : (
                       <button
                         onClick={() => handleSubscribe(tier.id)}
+                        disabled={isProcessing}
                         className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors ${
                           tier.highlighted
                             ? 'bg-blue-600 text-white hover:bg-blue-700'
                             : 'bg-slate-900 text-white hover:bg-slate-800'
-                        }`}
+                        } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {tier.cta}
                       </button>
@@ -220,6 +306,14 @@ export default function Pricing() {
           </div>
         </div>
       </section>
+
+      {billingError && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">
+            {billingError}
+          </div>
+        </div>
+      )}
 
       {/* Pay-as-you-go */}
       <section className="py-16 bg-white">
@@ -240,7 +334,11 @@ export default function Pricing() {
                 <div className="text-sm text-slate-600 mb-4">tokens</div>
                 <div className="text-4xl font-bold text-blue-600 mb-6">$1</div>
                 <div className="text-xs text-slate-500 mb-4">$0.10 per 1K tokens</div>
-                <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                <button
+                  onClick={() => handleTokenPurchase(10000)}
+                  disabled={isProcessing}
+                  className={`w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
                   Purchase
                 </button>
               </div>
@@ -252,7 +350,11 @@ export default function Pricing() {
                 <div className="text-sm text-slate-600 mb-4">tokens</div>
                 <div className="text-4xl font-bold text-purple-600 mb-6">$10</div>
                 <div className="text-xs text-slate-500 mb-4">$0.10 per 1K tokens</div>
-                <button className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold">
+                <button
+                  onClick={() => handleTokenPurchase(100000)}
+                  disabled={isProcessing}
+                  className={`w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
                   Purchase
                 </button>
               </div>
@@ -264,7 +366,11 @@ export default function Pricing() {
                 <div className="text-sm text-slate-600 mb-4">tokens</div>
                 <div className="text-4xl font-bold text-green-600 mb-6">$45</div>
                 <div className="text-xs text-green-600 font-medium mb-4">Save 10% • $0.09 per 1K</div>
-                <button className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                <button
+                  onClick={() => handleTokenPurchase(500000)}
+                  disabled={isProcessing}
+                  className={`w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
                   Purchase
                 </button>
               </div>

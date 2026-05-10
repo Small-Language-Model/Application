@@ -52,6 +52,10 @@ def _user_to_public(user: User) -> UserPublic:
         auth_type=user.auth_type,
         is_verified=user.is_verified,
         profile_image_url=_public_profile_image_url(user),
+        tokens_remaining=user.tokens_remaining,
+        subscription_plan=user.subscription_plan,
+        subscription_expires_at=user.subscription_expires_at,
+        subscription_tokens_per_day=user.subscription_tokens_per_day,
     )
 
 
@@ -104,6 +108,8 @@ async def _upsert_google_user(payload: dict) -> User:
         google_id=google_id,
         is_verified=True,
         profile_image_url=profile_image_url,
+        tokens_remaining=10,
+        last_token_grant_date=datetime.now(timezone.utc).date().isoformat(),
     )
     await users_collection.insert_one(user.model_dump())
     return user
@@ -227,6 +233,8 @@ async def verify_otp_and_register(
         is_verified=True,
         profile_image_url=profile_image_url,
         profile_image_public_id=profile_image_public_id,
+        tokens_remaining=10,
+        last_token_grant_date=datetime.now(timezone.utc).date().isoformat(),
     )
     await users_collection.insert_one(user.model_dump())
     await otp_collection.delete_one({"email": email})
@@ -249,6 +257,8 @@ async def register(user_data: UserCreate):
         hashed_password=get_password_hash(user_data.password),
         auth_type="emailandpassword",
         is_verified=False,
+        tokens_remaining=10,
+        last_token_grant_date=datetime.now(timezone.utc).date().isoformat(),
     )
     await users_collection.insert_one(user.model_dump())
     return _user_to_public(user)
