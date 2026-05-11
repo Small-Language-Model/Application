@@ -18,9 +18,10 @@ users_collection: AsyncIOMotorCollection | None = None
 otp_collection: AsyncIOMotorCollection | None = None
 billing_collection: AsyncIOMotorCollection | None = None
 chat_history_collection: AsyncIOMotorCollection | None = None
+password_reset_collection: AsyncIOMotorCollection | None = None
 
 async def connect_to_db() -> None:
-	global client, database, users_collection, otp_collection, billing_collection, chat_history_collection
+	global client, database, users_collection, otp_collection, billing_collection, chat_history_collection, password_reset_collection
 
 	if client is not None:
 		return
@@ -33,7 +34,9 @@ async def connect_to_db() -> None:
 		otp_collection = database["otps"]
 		billing_collection = database["billing"]
 		chat_history_collection = database["chat_history"]
+		password_reset_collection = database["password_resets"]
 		await otp_collection.create_index([("expires_at", ASCENDING)], expireAfterSeconds=0)
+		await password_reset_collection.create_index([("expires_at", ASCENDING)], expireAfterSeconds=0)
 		await users_collection.create_index([("email", ASCENDING)], unique=True)
 		await users_collection.create_index([("id", ASCENDING)], unique=True)
 		await billing_collection.create_index([("user_id", ASCENDING)])
@@ -46,7 +49,7 @@ async def connect_to_db() -> None:
 
 
 async def close_db_connection() -> None:
-	global client, database, users_collection, otp_collection
+	global client, database, users_collection, otp_collection, billing_collection, chat_history_collection, password_reset_collection
 
 	if client is not None:
 		client.close()
@@ -55,6 +58,9 @@ async def close_db_connection() -> None:
 	database = None
 	users_collection = None
 	otp_collection = None
+	billing_collection = None
+	chat_history_collection = None
+	password_reset_collection = None
 
 
 def get_users_collection() -> AsyncIOMotorCollection:
@@ -79,3 +85,9 @@ def get_chat_history_collection() -> AsyncIOMotorCollection:
 	if chat_history_collection is None:
 		raise RuntimeError("Database is not connected")
 	return chat_history_collection
+
+
+def get_password_reset_collection() -> AsyncIOMotorCollection:
+	if password_reset_collection is None:
+		raise RuntimeError("Database is not connected")
+	return password_reset_collection

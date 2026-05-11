@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router';
+import { useLocation } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Menu, X, LogOut, User, Coins } from 'lucide-react';
 import { useState } from 'react';
@@ -6,12 +7,20 @@ import { useState } from 'react';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const isChatPage = location.pathname === '/chat';
 
-  const handleLogout = () => {
+  const confirmLogout = () => {
     logout();
     navigate('/');
     setMobileMenuOpen(false);
+    setShowLogoutConfirm(false);
+  };
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
   };
 
   return (
@@ -31,6 +40,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Link>
               <Link to="/model" className="text-slate-700 hover:text-blue-600 transition-colors">
                 Model
+              </Link>
+              <Link to="/about" className="text-slate-700 hover:text-blue-600 transition-colors">
+                About
               </Link>
               <Link to="/pricing" className="text-slate-700 hover:text-blue-600 transition-colors">
                 Pricing
@@ -52,12 +64,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             {/* User Menu */}
             <div className="hidden md:flex items-center gap-4">
-              {user ? (
+              {user && !isChatPage ? (
                 <>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
                     <Coins className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium text-slate-700">
-                      {user.tokensRemaining.toLocaleString()} tokens
+                      {user.tokensRemaining.toLocaleString()} prompts
                     </span>
                   </div>
                   <Link to="/settings" className="flex items-center gap-2">
@@ -80,7 +92,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     Logout
                   </button>
                 </>
-              ) : (
+              ) : !user ? (
                 <>
                   <Link
                     to="/login"
@@ -95,7 +107,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     Sign Up
                   </Link>
                 </>
-              )}
+              ) : null}
             </div>
 
             {/* Mobile Menu Button */}
@@ -124,6 +136,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-lg"
                 >
                   Model
+                </Link>
+                <Link
+                  to="/about"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-lg"
+                >
+                  About
                 </Link>
                 <Link
                   to="/pricing"
@@ -158,7 +177,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
                 )}
                 <div className="border-t my-2"></div>
-                {user ? (
+                {user && !isChatPage ? (
                   <>
                     <div className="px-4 py-2">
                       <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
@@ -174,7 +193,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
                         <Coins className="w-4 h-4 text-blue-600" />
                         <span className="text-sm font-medium text-slate-700">
-                          {user.tokensRemaining.toLocaleString()} tokens
+                          {user.tokensRemaining.toLocaleString()} prompts
                         </span>
                       </div>
                     </div>
@@ -191,7 +210,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       </button>
                     </div>
                   </>
-                ) : (
+                ) : !user ? (
                   <>
                     <Link
                       to="/login"
@@ -208,15 +227,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       Sign Up
                     </Link>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
           )}
         </nav>
       </header>
 
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-2">Confirm logout</h3>
+            <p className="text-sm text-slate-600 mb-4">Are you sure you want to log out?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 transition-colors">Cancel</button>
+              <button onClick={confirmLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer hover:bg-red-700 transition-colors">Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1">{children}</main>
 
+      {!isChatPage && (
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -234,6 +267,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <div className="flex flex-col gap-2">
                 <Link to="/model" className="text-slate-600 hover:text-blue-600 text-sm">
                   Model Details
+                </Link>
+                <Link to="/about" className="text-slate-600 hover:text-blue-600 text-sm">
+                  About
                 </Link>
                 <Link to="/guide" className="text-slate-600 hover:text-blue-600 text-sm">
                   Documentation
@@ -255,6 +291,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }

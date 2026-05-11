@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import httpx
 
 from config.db import get_chat_history_collection
 from model.chat_history import ChatHistory
@@ -11,6 +13,16 @@ from model.user import User
 
 
 router = APIRouter()
+
+# Groq enhancement settings
+GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.ai/v1/generate")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+ENHANCE_OUTPUT = os.getenv("ENHANCE_OUTPUT", "false").lower() in ("1", "true", "yes")
+# Default system prompt for Groq (override with GROQ_SYSTEM_PROMPT env var)
+GROQ_SYSTEM_PROMPT = os.getenv(
+    "GROQ_SYSTEM_PROMPT",
+    "You are a compact 50M-parameter assistant. Answer concisely and helpfully in 4-5 short lines, directly addressing the user's question. Keep outputs relevant, factual, and simple."
+)
 
 
 @router.get("/health", response_model=InferenceHealthResponse, status_code=status.HTTP_200_OK)
@@ -36,6 +48,33 @@ async def generate_response(payload: GenerateRequest, current_user: User = Depen
             )
 
         response = inference_service.generate(payload)
+
+        # Optionally enhance the generated response via Groq API.
+        if ENHANCE_OUTPUT and GROQ_API_KEY:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    groq_payload = {
+                        "system": GROQ_SYSTEM_PROMPT,
+                        "prompt": payload.prompt,
+                        "max_tokens": 200,
+                    }
+                    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+                    groq_resp = await client.post(GROQ_API_URL, json=groq_payload, headers=headers)
+                    if groq_resp.status_code == 200:
+                        data = groq_resp.json()
+                        groq_text = None
+                        if isinstance(data, dict):
+                            groq_text = data.get("text") or data.get("output") or data.get("generated_text")
+                            if not groq_text and "results" in data and isinstance(data["results"], list) and data["results"]:
+                                first = data["results"][0]
+                                if isinstance(first, dict):
+                                    groq_text = first.get("text") or first.get("output")
+                        if groq_text and isinstance(groq_text, str) and groq_text.strip():
+                            response = groq_text.strip()
+            except Exception:
+                # If Groq fails, ignore and use local response
+                print(Exception)
+                pass
 
         await consume_tokens(current_user, 1)
 

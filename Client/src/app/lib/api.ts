@@ -74,6 +74,14 @@ export interface SendOtpResponse {
   email: string;
 }
 
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
 export async function registerUser(payload: {
   full_name: string;
   email: string;
@@ -108,6 +116,22 @@ export async function sendOtp(email: string): Promise<SendOtpResponse> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
+  });
+}
+
+export async function requestPasswordReset(email: string): Promise<ForgotPasswordResponse> {
+  return request<ForgotPasswordResponse>('/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, password: string): Promise<ResetPasswordResponse> {
+  return request<ResetPasswordResponse>('/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password }),
   });
 }
 
