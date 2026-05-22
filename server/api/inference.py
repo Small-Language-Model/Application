@@ -17,7 +17,7 @@ router = APIRouter()
 # Groq enhancement settings
 GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.ai/v1/generate")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-ENHANCE_OUTPUT = os.getenv("ENHANCE_OUTPUT", "false").lower() in ("1", "true", "yes")
+ENHANCE_OUTPUT = os.getenv("ENHANCE_OUTPUT", "true").lower() in ("1", "true", "yes")
 # Default system prompt for Groq (override with GROQ_SYSTEM_PROMPT env var)
 GROQ_SYSTEM_PROMPT = os.getenv(
     "GROQ_SYSTEM_PROMPT",

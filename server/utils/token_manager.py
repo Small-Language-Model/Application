@@ -8,10 +8,21 @@ def _today_utc_string() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
+def _ensure_utc_aware(value: datetime) -> datetime:
+    """
+    MongoDB or legacy writes may store naive datetimes.
+    Treat naive values as UTC to safely compare with timezone-aware UTC "now".
+    """
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def is_subscription_active(user: User) -> bool:
     if user.subscription_expires_at is None:
         return False
-    return user.subscription_expires_at > datetime.now(timezone.utc)
+    expires_at = _ensure_utc_aware(user.subscription_expires_at)
+    return expires_at > datetime.now(timezone.utc)
 
 
 async def ensure_daily_tokens(user: User) -> User:
